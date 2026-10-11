@@ -1,0 +1,41 @@
+name: Build ColorCam
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ColorCam/**'
+      - '.github/workflows/colorcam.yml'
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ColorCam
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app (unsigned)
+        run: |
+          xcodebuild -project ColorCam.xcodeproj \
+            -target ColorCam \
+            -configuration Release \
+            -sdk iphoneos \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/ColorCam.app Payload/
+          zip -qry ColorCam.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ColorCam-ipa
+          path: ColorCam/ColorCam.ipa
